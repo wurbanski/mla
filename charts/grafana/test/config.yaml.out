@@ -143,31 +143,19 @@ data:
     apiVersion: 1
     providers:
     - disableDeletion: false
-      folder: ""
-      name: default
+      folder: Kubernetes
+      name: kubernetes
       options:
-        path: /var/lib/grafana/dashboards/default
+        path: /var/lib/grafana/dashboards/kubernetes
       org_id: 1
       type: file
-  download_dashboards.sh: |
-    #!/usr/bin/env sh
-    set -euf
-    mkdir -p /var/lib/grafana/dashboards/default
----
-# Source: grafana/charts/grafana/templates/dashboards-json-configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: release-name-grafana-dashboards-default
-  namespace: default
-  labels:
-    helm.sh/chart: grafana-6.17.5
-    app.kubernetes.io/name: grafana
-    app.kubernetes.io/instance: release-name
-    app.kubernetes.io/version: "8.2.3"
-    app.kubernetes.io/managed-by: Helm
-    dashboard-provider: default
-    grafana_dashboard: "1"
+    - disableDeletion: false
+      folder: Kubermatic
+      name: kubermatic
+      options:
+        path: /var/lib/grafana/dashboards/kubermatic
+      org_id: 1
+      type: file
 ---
 # Source: grafana/charts/grafana/templates/tests/test-configmap.yaml
 apiVersion: v1
@@ -369,8 +357,8 @@ spec:
         app.kubernetes.io/name: grafana
         app.kubernetes.io/instance: release-name
       annotations:
-        checksum/config: 21a781bd57529874170129783fa0387549c12a151ed23f3ab7df710111ee53d0
-        checksum/dashboards-json-config: d66cb7978a424323f2d14d2f0e9b83352685ad7bfc76af645a9299f5c85b85dd
+        checksum/config: 95c0fde73d015957f0d68f5d4c25c1e21c1c3e195525c9c4fffd6d479aa0ce04
+        checksum/dashboards-json-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
         checksum/sc-dashboard-provider-config: 01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b
     spec:
       
@@ -393,20 +381,6 @@ spec:
           volumeMounts:
             - name: storage
               mountPath: "/var/lib/grafana"
-        - name: download-dashboards
-          image: "curlimages/curl:7.73.0"
-          imagePullPolicy: IfNotPresent
-          command: ["/bin/sh"]
-          args: [ "-c", "mkdir -p /var/lib/grafana/dashboards/default && /bin/sh -x /etc/grafana/download_dashboards.sh" ]
-          resources:
-            {}
-          env:
-          volumeMounts:
-            - name: config
-              mountPath: "/etc/grafana/download_dashboards.sh"
-              subPath: download_dashboards.sh
-            - name: storage
-              mountPath: "/var/lib/grafana"
       enableServiceLinks: true
       containers:
         - name: grafana
@@ -418,6 +392,10 @@ spec:
               subPath: grafana.ini
             - name: storage
               mountPath: "/var/lib/grafana"
+            - name: dashboards-kubermatic
+              mountPath: "/var/lib/grafana/dashboards/kubermatic"
+            - name: dashboards-kubernetes
+              mountPath: "/var/lib/grafana/dashboards/kubernetes"
             - name: config
               mountPath: "/etc/grafana/provisioning/dashboards/dashboardproviders.yaml"
               subPath: "dashboardproviders.yaml"
@@ -465,9 +443,13 @@ spec:
         - name: config
           configMap:
             name: release-name-grafana
-        - name: dashboards-default
+          
+        - name: dashboards-kubermatic
           configMap:
-            name: release-name-grafana-dashboards-default
+            name: grafana-dashboards-kkp-kubernetes
+        - name: dashboards-kubernetes
+          configMap:
+            name: grafana-dashboards-kubernetes-overview
       # nothing
   volumeClaimTemplates:
   - metadata:
